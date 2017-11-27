@@ -26,7 +26,11 @@
   (testing "same value"
     (is (= {:bar 3}
            (bindings {:foo {:var :bar} :baz {:var :bar}}
-                     {:foo 3 :baz 3})))))
+                     {:foo 3 :baz 3}))))
+  (testing "same value, nested structure"
+    (is (= {:bar 3}
+           (bindings {:foo {:baz {:var :bar}} :quux {:var :bar}}
+                     {:foo {:baz 3} :quux 3})))))
 
 (deftest nil-test
   (testing "different value"
