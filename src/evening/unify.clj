@@ -105,6 +105,7 @@
   [pred val]
   (pred val))
 
+
 (declare bindings-aux)
 (defn match-single-kvp
   "Given a single key-value-pair of a matcher and some data to match against, gets any variable bindings from that match"
@@ -131,3 +132,23 @@
   "Extracts variables from matchers on data"
   [matcher to-match]
   (bindings-aux {} matcher to-match))
+
+
+(defn all-bindings-single-matcher
+  "Extracts all sets of variable bindings from a single matcher against a set of maps"
+  [matcher maps]
+  (->> (map (fn [m] (bindings matcher m)) maps)
+       (filter some?)))
+
+
+(defn combinations
+  "Given some collections, makes new collections by conjoining each element from each other collection"
+  [colls]
+  (reduce (fn [state it]
+            (mapcat (fn [el]
+                   (map (fn [state-coll]
+                             (conj state-coll el))
+                           state))
+                 it))
+          (conj (empty colls) (empty colls))
+          colls))
