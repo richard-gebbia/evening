@@ -1,4 +1,4 @@
-(ns tap.unify
+(ns evening.unify
   (:gen-class))
 
 
@@ -78,10 +78,6 @@
                 (recur value)))))))))
 
 
-; (ground? [:foo :bar])
-; (ground? [:foo {:var :bar}])
-; (ground? {:foo {:var :bar}})
-
 (defn submap?
   "Checks if one map's key-value pairs are a subset of another's"
   [sub super]
@@ -105,45 +101,18 @@
   (reduce merge-variable-binding current new))
 
 
-(defn bindings-aux-
-  "Extracts variables from matcher on data and merges them into a map of already known variables" 
-  [current-vars matcher to-match] 
-  (let [ground-key-value-pairs (filter ground? matcher)
-        variable-key-value-pairs (filter (comp not ground?) matcher)]
-    ; if not all grounds can be matched and all keys of non-grounds can be matched,
-    ; we can't match the matcher to the data, so return nil
-    (when (submap? ground-key-value-pairs to-match)
-      ; otherwise, for each value of the non-ground key-value pairs
-      (->> (map (fn find-and-bind [[key-in-matcher val-in-matcher]] 
-                    ; if it is in the form {:var <something>}
-                    (if (apply matcher-var-key-value? (first val-in-matcher))
-                      ; bind the variable <something> to the corresponding value in "to-match"
-                      (let [var-name (second (first val-in-matcher))]
-                        {var-name (key-in-matcher to-match)})
-                      ; otherwise, recurse with "to-match" being the corresponding value in the current "to-match" and "matcher" as the value
-                      (bindings-aux current-vars val-in-matcher (key-in-matcher to-match))))
-                variable-key-value-pairs)
-            (reduce merge-variable-bindings current-vars)))))
-
-
-(defn bindings-
-  "Extracts variables from matchers on data"
-  [matcher data]
-  (bindings-aux {} matcher data))
-
-
 (defn what-is
   [pred val]
   (pred val))
 
-
+(declare bindings-aux)
 (defn match-single-kvp
   "Given a single key-value-pair of a matcher and some data to match against, gets any variable bindings from that match"
   [[matcher-key matcher-value] to-match current-vars]
   (when (keyword? matcher-key)
     (when-let [corresponding-value (matcher-key to-match)]
-      (condp what-is? matcher-value
-        matcher-var? {(:var matcher-value) #{corresponding-value}}
+      (condp what-is matcher-value
+        matcher-var? {(:var matcher-value) corresponding-value}
         map? (bindings-aux current-vars matcher-value corresponding-value)
         (when (= corresponding-value matcher-value) {})))))
 

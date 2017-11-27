@@ -9,9 +9,9 @@
 (task-options!
  pom {:project     project
       :version     version
-      :description "FIXME: write description"
+      :description "A programming language because there aren't enough already"
       :url         "http://example/FIXME"
-      :scm         {:url "https://github.com/yourname/evening"}
+      :scm         {:url "https://github.com/richard-gebbia/evening"}
       :license     {"Eclipse Public License"
                     "http://www.eclipse.org/legal/epl-v10.html"}})
 
