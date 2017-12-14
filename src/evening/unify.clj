@@ -86,7 +86,7 @@
 
 (defn merge-variable-binding
   [current new]
-  (when (some? new)
+  (when (and (some? new) (some? current))
     (let [key (first new)
           value (second new)]
       (when (some? value)
@@ -138,7 +138,7 @@
   "Extracts all sets of variable bindings from a single matcher against a set of maps"
   [matcher maps]
   (->> (map (fn [m] (bindings matcher m)) maps)
-       (filter some?)))
+       (filter seq)))
 
 
 (defn combinations
@@ -152,3 +152,21 @@
                  it))
           (conj (empty colls) (empty colls))
           colls))
+
+
+(defn all-seqs-not-empty
+  "Given a collection of collections, returns nil if any of the individual collections are empty
+  and returns larger collection otherwise."
+  [colls]
+  (when (every? seq colls) colls))
+
+  
+(defn all-bindings
+  "Given some matchers and some data to match against, extracts the set of all variable bindings
+  that fits all the matchers."
+  [matchers maps]
+  (->> (map #(all-bindings-single-matcher % maps) matchers)
+       (all-seqs-not-empty)
+       (combinations)
+       (map #(reduce merge-variable-bindings {} %))
+       (filter seq)))
