@@ -98,7 +98,7 @@
 
 (defn merge-variable-bindings
   [current new]
-  (reduce merge-variable-binding current new))
+  (when (some? new) (reduce merge-variable-binding current new)))
 
 
 (defn what-is
@@ -169,4 +169,7 @@
        (all-seqs-not-empty)
        (combinations)
        (map #(reduce merge-variable-bindings {} %))
-       (filter seq)))
+       (filter seq)
+       (into #{})))
+
+(bindings {:foo :bar} {:baz :quux})
