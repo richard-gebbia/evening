@@ -137,8 +137,9 @@
 (defn all-bindings-single-matcher
   "Extracts all sets of variable bindings from a single matcher against a set of maps"
   [matcher maps]
-  (->> (map (fn [m] (bindings matcher m)) maps)
-       (filter seq)))
+  (some->> (map (fn [m] (bindings matcher m)) maps)
+           (#(when (some some? %) %))
+           (filter seq)))
 
 
 (defn combinations
@@ -154,22 +155,35 @@
           colls))
 
 
-(defn all-seqs-not-empty
-  "Given a collection of collections, returns nil if any of the individual collections are empty
-  and returns larger collection otherwise."
+(defn all-seqs-not-nil
+  "Given a collection of collections, returns nil if any of the individual collections are nil
+  and returns the larger collection without any empty ones."
   [colls]
-  (when (every? seq colls) colls))
+  (when (every? some? colls) (filter seq colls)))
 
   
+(defn log 
+  [s x]
+  (do (print (str s ": "))
+      (prn x)
+      x))
+  
+
 (defn all-bindings
   "Given some matchers and some data to match against, extracts the set of all variable bindings
   that fits all the matchers."
   [matchers maps]
-  (->> (map #(all-bindings-single-matcher % maps) matchers)
-       (all-seqs-not-empty)
-       (combinations)
-       (map #(reduce merge-variable-bindings {} %))
-       (filter seq)
-       (into #{})))
+  (some->> (map #(all-bindings-single-matcher % maps) matchers)
+           ; (log "after all-bindings-single-matcher")
+           (all-seqs-not-nil)
+           ; (log "after all-seqs-not-empty")
+           (combinations)
+           ; (log "after combinations")
+           (map #(reduce merge-variable-bindings {} %))
+           ; (log "after merge-variable-bindings")
+           (filter seq)
+           ; (log "after (filter seq)")
+           (into #{})))
 
-(bindings {:foo :bar} {:baz :quux})
+(all-bindings #{{:man {:var :x}} {:sky :blue}}
+              #{{:man "plato"} {:sky :blue}})

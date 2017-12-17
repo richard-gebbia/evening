@@ -82,3 +82,20 @@
                             {:p 7}
                             {:p {:0 7}}
                             {:p {:0 2 :1 2}}})))))
+
+(deftest with-and-without-variables
+  (let [data1 {:man "socrates"}
+        data2 {:man "plato"}
+        data3 {:sky :blue}
+        data4 {:sky :red}
+        matcher {:man {:var :x}}]
+    (testing "without the variable-less data"
+      (is (nil? (all-bindings #{data3 matcher}
+                              #{data1 data2}))))
+    (testing "with the wrong variable-less data"
+      (is (nil? (all-bindings #{data3 matcher}
+                              #{data1 data2 data4}))))
+    (testing "with the right variable-less data"
+      (is (= #{{:x "socrates"} {:x "plato"}} 
+              (all-bindings #{data3 matcher}
+                            #{data1 data2 data3}))))))
