@@ -174,16 +174,8 @@
   that fits all the matchers."
   [matchers maps]
   (some->> (map #(all-bindings-single-matcher % maps) matchers)
-           ; (log "after all-bindings-single-matcher")
            (all-seqs-not-nil)
-           ; (log "after all-seqs-not-empty")
            (combinations)
-           ; (log "after combinations")
            (map #(reduce merge-variable-bindings {} %))
-           ; (log "after merge-variable-bindings")
            (filter seq)
-           ; (log "after (filter seq)")
            (into #{})))
-
-(all-bindings #{{:man {:var :x}} {:sky :blue}}
-              #{{:man "plato"} {:sky :blue}})

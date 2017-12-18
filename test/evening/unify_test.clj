@@ -98,4 +98,31 @@
     (testing "with the right variable-less data"
       (is (= #{{:x "socrates"} {:x "plato"}} 
               (all-bindings #{data3 matcher}
-                            #{data1 data2 data3}))))))
+                            #{data1 data2 data3})))))
+  (let [data1 {:p {:0 {:sky :blue} :1 5}}
+        data2 {:p {:0 {:sky :red} :1 6}}
+        data3 {:q 6}
+        data4 {:p {:sky :blue}}
+        data5 {:p {:0 {:sky :blue}}}
+        matcher {:p {:0 {:sky :blue} :1 {:var :x}}}]
+    (testing "nested variable-less data"
+      (is (= #{{:x 5}}
+              (all-bindings #{matcher}
+                            #{data1 data2 data3 data4 data5}))))))
+
+(deftest complex-unification-test
+  (testing "complex unification test"
+    (let [data1 {:p {:0 {:q {:0 4 :1 2}} :1 2}}
+          data2 {:p {:0 {:q {:0 3 :1 8}} :1 7}}
+          data3 {:p {:0 {:q {:0 0 :1 5}} :1 5}}
+          data4 {:p {:q 9}}
+          data5 {:p {:0 {:q 9}}}
+          data6 {:p {:0 {:q {:0 9}}}}
+          data7 {:r 4}
+          data8 {:r {:0 4}}
+          matcher1 {:p {:0 {:q {:0 {:var :x} :1 {:var :y}}} :1 {:var :y}}}
+          matcher2 {:r {:var :x}}]
+      (is (= #{{:x 4 :y 2}}
+              (all-bindings #{matcher1 matcher2}
+                            #{data1 data2 data3 data4
+                              data5 data6 data7 data8}))))))
