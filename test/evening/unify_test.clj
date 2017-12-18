@@ -126,3 +126,51 @@
               (all-bindings #{matcher1 matcher2}
                             #{data1 data2 data3 data4
                               data5 data6 data7 data8}))))))
+
+(deftest basic-inference-test
+  (testing "basic inference"
+    (is (= #{{:mortal "socrates"} {:mortal "plato"}}
+            (infer #{{:man {:var :x}}}
+                   #{{:mortal {:var :x}}}
+                   #{{:man "socrates"}
+                     {:man "plato"}})))))
+
+(deftest mccarthy-logic
+  (testing "McCarthy logic"
+    (let [fact1 {:walks-like-duck "dolan"}
+          fact2 {:walks-like-duck "daffy"}
+          fact3 {:looks-like-duck "dolan"}
+          fact4 {:looks-like-duck "daffy"}
+          fact5 {:quacks-like-duck "dolan"}
+          premise1 {:walks-like-duck {:var :x}}
+          premise2 {:looks-like-duck {:var :x}}
+          premise3 {:quacks-like-duck {:var :x}}
+          conclusion1 {:duck {:var :x}}
+          inference (infer #{premise1 premise2 premise3}
+                           #{conclusion1}
+                           #{fact1 fact2 fact3 fact4 fact5})]
+      (testing "dolan should be a duck"
+        (is (contains? inference {:duck "dolan"})))
+      (testing "daffy should not be a duck"
+        (is (not (contains? inference {:duck "daffy"})))))))
+
+(deftest closer-to-real-world-test
+  (testing "Closer to real world, with submap variable substitution"
+    (let [fact1 {:is-positive 5}
+          fact2 {:is-positive 3}
+          fact3 {:rect {:top 2 :left -4 :width 5 :height 3}}
+          fact4 {:rect {:top 2 :left -4 :width 3 :height 3}}
+          fact5 {:rect {:top 2 :left -4 :width -3 :height -3}}
+          premise1 {:rect {:top {:var :top} :left {:var :left}
+                          :width {:var :width} :height {:var :width}}}
+          premise2 {:is-positive {:var :width}}
+          conclusion {:square premise1}
+          inference (infer #{premise1 premise2}
+                          #{conclusion}
+                          #{fact1 fact2 fact3 fact4 fact5})]
+      (testing "squares are square"
+        (is (contains? inference {:square fact4})))
+      (testing "rectangles aren't necessarily square"
+        (is (not (contains? inference {:square fact3}))))
+      (testing "negative width doesn't count"
+        (is (not (contains? inference {:square fact5})))))))
