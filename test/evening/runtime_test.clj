@@ -1,6 +1,6 @@
-(ns evening.unify-test
+(ns evening.runtime-test
   (:require [clojure.test :refer :all]
-            [evening.unify :refer :all]))
+            [evening.runtime :refer :all]))
 
 (deftest bindings-test
   (testing "basic bindings test"

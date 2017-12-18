@@ -1,4 +1,4 @@
-(ns evening.unify
+(ns evening.runtime
   (:gen-class))
 
 
@@ -44,7 +44,9 @@
     (map? x)
     (and 
       (= 1 (count x))
-      (let [key (first (first x)) ; (first x) takes a map that looks like {foo bar} and turns it into a vector that looks like [foo bar]
+      ; (first x) takes a map that looks like {foo bar} 
+      ; and turns it into a vector that looks like [foo bar]
+      (let [key (first (first x))
             value (second (first x))]
         (matcher-var-key-value? key value)))
     ; ... or a vector
@@ -108,7 +110,9 @@
 
 (declare bindings-aux)
 (defn match-single-kvp
-  "Given a single key-value-pair of a matcher and some data to match against, gets any variable bindings from that match"
+  "Given a single key-value-pair of a matcher and 
+  some data to match against, gets any variable bindings 
+  from that match"
   [[matcher-key matcher-value] to-match current-vars]
   (when (keyword? matcher-key)
     (when-let [corresponding-value (matcher-key to-match)]
@@ -143,7 +147,8 @@
 
 
 (defn combinations
-  "Given some collections, makes new collections by conjoining each element from each other collection"
+  "Given some collections, makes new collections by 
+  conjoining each element from each other collection"
   [colls]
   (reduce (fn [state it]
             (mapcat (fn [el]
@@ -156,8 +161,9 @@
 
 
 (defn all-seqs-not-nil
-  "Given a collection of collections, returns nil if any of the individual collections are nil
-  and returns the larger collection without any empty ones."
+  "Given a collection of collections, returns nil if any 
+  of the individual collections are nil and returns the 
+  larger collection without any empty ones."
   [colls]
   (when (every? some? colls) (filter seq colls)))
 
@@ -170,7 +176,8 @@
   
 
 (defn all-bindings
-  "Given some matchers and some data to match against, extracts the set of all variable bindings
+  "Given some matchers and some data to match against, 
+  extracts the set of all variable bindings
   that fits all the matchers."
   [matchers maps]
   (some->> (map #(all-bindings-single-matcher % maps) matchers)
