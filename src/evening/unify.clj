@@ -179,3 +179,28 @@
            (map #(reduce merge-variable-bindings {} %))
            (filter seq)
            (into #{})))
+
+
+(defn variable-substitution
+  "Given a matcher and a mapping of variables to values, 
+  replaces all variables in the matcher with their corresponding values.
+  Throws an exception if a variable cannot be assigned a value."
+  [matcher var-values]
+  (condp what-is matcher
+    matcher-var? (if-let [var-val ((:var matcher) var-values)] 
+                  var-val
+                  (throw (ex-info "Cannot match variable!"
+                            {:trying-to-match (:var matcher)
+                             :mappings var-values})))
+    map? (into {} (map (fn [[k v]] [k (variable-substitution v var-values)]) matcher))
+    matcher))
+
+
+(defn infer
+  "Given a some premises (as matchers), conclusions (as matchers), and facts 
+  (maps that can be matched against using 'bindings'), provides all new facts
+  that can be inferred."
+  [premises conclusions facts]
+  (some->> (all-bindings premises facts)
+           (mapcat (fn [var-bindings] (map #(variable-substitution % var-bindings) conclusions)))
+           (into #{})))
