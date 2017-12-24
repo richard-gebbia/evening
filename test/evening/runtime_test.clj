@@ -1,5 +1,6 @@
 (ns evening.runtime-test
   (:require [clojure.test :refer :all]
+            [clojure.set :as set]
             [evening.runtime :refer :all]))
 
 (deftest bindings-test
@@ -129,11 +130,11 @@
 
 (deftest basic-inference-test
   (testing "basic inference"
-    (is (= #{{:mortal "socrates"} {:mortal "plato"}}
-            (infer #{{:man {:var :x}}}
-                   #{{:mortal {:var :x}}}
-                   #{{:man "socrates"}
-                     {:man "plato"}})))))
+    (is (set/subset? #{{:mortal "socrates"} {:mortal "plato"}}
+                      (infer #{{:man {:var :x}}}
+                            #{{:mortal {:var :x}}}
+                            #{{:man "socrates"}
+                              {:man "plato"}})))))
 
 (deftest mccarthy-logic
   (testing "McCarthy logic"

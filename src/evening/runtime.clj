@@ -1,4 +1,5 @@
 (ns evening.runtime
+  (:require [clojure.set :as set])
   (:gen-class))
 
 
@@ -203,11 +204,83 @@
     matcher))
 
 
+(defn variable-substitutions
+  "Given a multiple sets of variable bindings and a set of of matchers,
+  generates a set of maps with the variables substituted in (see `matcher-var?`).
+  Creates a map with each variable binding map as a key to a list of all the 
+  substituted matchers."
+  [var-bindings matchers]
+  (into {} (map (fn [single-binding-set] 
+    [single-binding-set (into #{} (map #(variable-substitution % single-binding-set) matchers))]) var-bindings)))
+
+
 (defn infer
   "Given a some premises (as matchers), conclusions (as matchers), and facts 
-  (maps that can be matched against using 'bindings'), provides all new facts
-  that can be inferred."
-  [premises conclusions facts]
-  (some->> (all-bindings premises facts)
-           (mapcat (fn [var-bindings] (map #(variable-substitution % var-bindings) conclusions)))
-           (into #{})))
+  (maps that can be matched against using 'bindings'), provides the new set of
+  facts known. If a derived fact is not yet known (it is not in provided 'facts' 
+  set), then the 'side-effect' is triggered with the variable bindings used
+  to generate that fact."
+  ([premises conclusions facts] (infer premises conclusions facts identity))
+  ([premises conclusions facts side-effect]
+    (let [b (all-bindings premises facts)
+          subst (variable-substitutions b conclusions)]
+      (reduce (fn [state [it-var-bindings it-facts]]
+        (reduce #(if (contains? facts %2)
+                    %1
+                    (do (side-effect it-var-bindings)
+                        (conj %1 %2)))
+                state
+                it-facts))
+          facts 
+          subst))))
+
+
+; TODO: encode these as specs
+; premises - set of matchers
+; conclusions - vector of matchers
+; side-effect - lambda
+(defrecord Rule [premises conclusions side-effect])
+
+; TODO: encode these as specs
+; facts - set of maps
+; rules - set of Rules
+(defrecord KnowledgeBase [facts rules])
+
+
+(defn perform-rule-side-effect
+  "Performs the side-effect of the supplied rule with the supplied data."
+  [rule data]
+  ((:side-effect rule) data))
+
+
+(defn fix-from
+  "Finds the fixed point of a function given an initial 'seed' value."
+  [f init]
+  (loop [prev init 
+         next (f init)]
+    (if (= prev next) 
+      next
+      (recur next (f next)))))
+
+
+(defn infer-step
+  "Given a KnowledgeBase, infers new facts that can be known from one
+  inference 'step.' Any facts inside the KnowledgeBase returned from this
+  function must have either been known from the original or been derived
+  only from facts and rules known in the original."
+  [kb]
+  (let [rules (:rules kb)
+        new-facts (apply set/union
+                    (map #(infer (:premises %) 
+                                 (:conclusions %) 
+                                 (:facts kb) 
+                                 (:side-effect %)) 
+                         rules))]
+    (KnowledgeBase. new-facts (:rules kb))))
+
+
+(defn infer-all
+  "Given a KnowledgeBase, infers all possible new facts from what's known
+  and returns a new KnowledgeBase with all the new facts."
+  [kb]
+  (fix-from infer-step kb))
