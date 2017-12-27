@@ -130,11 +130,11 @@
 
 (deftest basic-inference-test
   (testing "basic inference"
-    (is (set/subset? #{{:mortal "socrates"} {:mortal "plato"}}
-                      (infer #{{:man {:var :x}}}
-                            #{{:mortal {:var :x}}}
-                            #{{:man "socrates"}
-                              {:man "plato"}})))))
+    (is (= #{{:mortal "socrates"} {:mortal "plato"}}
+            (infer #{{:man {:var :x}}}
+                   {{:mortal {:var :x}} identity}
+                   #{{:man "socrates"}
+                     {:man "plato"}})))))
 
 (deftest mccarthy-logic
   (testing "McCarthy logic"
@@ -148,7 +148,7 @@
           premise3 {:quacks-like-duck {:var :x}}
           conclusion1 {:duck {:var :x}}
           inference (infer #{premise1 premise2 premise3}
-                           #{conclusion1}
+                           {conclusion1 identity}
                            #{fact1 fact2 fact3 fact4 fact5})]
       (testing "dolan should be a duck"
         (is (contains? inference {:duck "dolan"})))
@@ -167,8 +167,8 @@
           premise2 {:is-positive {:var :width}}
           conclusion {:square premise1}
           inference (infer #{premise1 premise2}
-                          #{conclusion}
-                          #{fact1 fact2 fact3 fact4 fact5})]
+                           {conclusion identity}
+                           #{fact1 fact2 fact3 fact4 fact5})]
       (testing "squares are square"
         (is (contains? inference {:square fact4})))
       (testing "rectangles aren't necessarily square"

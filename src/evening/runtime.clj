@@ -1,5 +1,6 @@
 (ns evening.runtime
-  (:require [clojure.set :as set])
+  (:require [clojure.set :as set]
+            [clojure.spec.alpha :as spec])
   (:gen-class))
 
 
@@ -214,32 +215,30 @@
     [single-binding-set (into #{} (map #(variable-substitution % single-binding-set) matchers))]) var-bindings)))
 
 
+(defn maybe-add-fact
+  [facts side-effect val]
+  (do (when (not (contains? facts val)) (side-effect val))
+      val))
+
+
 (defn infer
-  "Given a some premises (as matchers), conclusions (as matchers), and facts 
-  (maps that can be matched against using 'bindings'), provides the new set of
-  facts known. If a derived fact is not yet known (it is not in provided 'facts' 
-  set), then the 'side-effect' is triggered with the variable bindings used
-  to generate that fact."
-  ([premises conclusions facts] (infer premises conclusions facts identity))
-  ([premises conclusions facts side-effect]
-    (let [b (all-bindings premises facts)
-          subst (variable-substitutions b conclusions)]
-      (reduce (fn [state [it-var-bindings it-facts]]
-        (reduce #(if (contains? facts %2)
-                    %1
-                    (do (side-effect it-var-bindings)
-                        (conj %1 %2)))
-                state
-                it-facts))
-          facts 
-          subst))))
+  "Given a some premises (as matchers), conclusions (as a map of matchers to side-effects),
+  and facts (maps that can be matched against using 'bindings'), provides all new facts
+  that can be inferred."
+  [premises conclusions facts]
+  (some->> (all-bindings premises facts)
+           (mapcat #(map (fn [[matcher side-effect]] 
+                            (maybe-add-fact facts side-effect (variable-substitution matcher %))) conclusions))
+           (into #{})))
 
 
 ; TODO: encode these as specs
 ; premises - set of matchers
-; conclusions - vector of matchers
+; conclusions - map of matchers to side-effects
 ; side-effect - lambda
 (defrecord Rule [premises conclusions side-effect])
+
+(spec/def ::keyword-keyed-map (spec/map-of keyword? (spec/or :map ::keyword-keyed-map :anything-else (constantly true))))
 
 ; TODO: encode these as specs
 ; facts - set of maps
@@ -273,8 +272,7 @@
         new-facts (apply set/union
                     (map #(infer (:premises %) 
                                  (:conclusions %) 
-                                 (:facts kb) 
-                                 (:side-effect %)) 
+                                 (:facts kb))
                          rules))]
     (KnowledgeBase. new-facts (:rules kb))))
 
