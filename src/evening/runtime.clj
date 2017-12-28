@@ -277,3 +277,23 @@
   and returns a new KnowledgeBase with all the new facts."
   [kb]
   (fix-from infer-step kb))
+
+
+(defn add-fact
+  "Adds a fact to a knowledge base and infers all the consequences."
+  [fact kb]
+  (infer-all (->KnowledgeBase (conj (:facts kb) fact) (:rules kb))))
+
+(spec/fdef add-fact
+  :args (spec/cat :fact ::keyword-keyed-map :kb ::knowledge-base)
+  :ret ::knowledge-base)  
+
+
+(defn add-rule
+  "Adds a rule to a knowledge base and infers all the consequences."
+  [rule kb]
+  (infer-all (->KnowledgeBase (:facts kb) (conj (:rules kb) rule))))
+
+(spec/fdef add-rule
+  :args (spec/cat :rule ::rule :kb ::knowledge-base)
+  :ret ::knowledge-base)
