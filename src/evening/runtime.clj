@@ -232,24 +232,19 @@
            (into #{})))
 
 
-; TODO: encode these as specs
-; premises - set of matchers
-; conclusions - map of matchers to side-effects
-; side-effect - lambda
-(defrecord Rule [premises conclusions side-effect])
+(defrecord Rule [premises conclusions])
 
-(spec/def ::keyword-keyed-map (spec/map-of keyword? (spec/or :map ::keyword-keyed-map :anything-else (constantly true))))
+(spec/def ::keyword-keyed-map (spec/map-of keyword? (spec/or :map ::keyword-keyed-map :anything-else any?)))
+(spec/def ::premises (spec/coll-of ::keyword-keyed-map :type set? :min-count 1))
+(spec/def ::conclusions (spec/map-of ::keyword-keyed-map (spec/fspec :args (spec/cat :data any?) :ret any?)))
+(spec/def ::rule (spec/keys :req-un [::premises ::conclusions]))
 
-; TODO: encode these as specs
-; facts - set of maps
-; rules - set of Rules
+
 (defrecord KnowledgeBase [facts rules])
 
-
-(defn perform-rule-side-effect
-  "Performs the side-effect of the supplied rule with the supplied data."
-  [rule data]
-  ((:side-effect rule) data))
+(spec/def ::facts (spec/coll-of ::keyword-keyed-map :type set?))
+(spec/def ::rules (spec/coll-of ::rule :type set?))
+(spec/def ::knowledge-base (spec/keys :req-un [::facts ::rules]))
 
 
 (defn fix-from
@@ -274,7 +269,7 @@
                                  (:conclusions %) 
                                  (:facts kb))
                          rules))]
-    (KnowledgeBase. new-facts (:rules kb))))
+    (->KnowledgeBase (set/union (:facts kb) new-facts) (:rules kb))))
 
 
 (defn infer-all

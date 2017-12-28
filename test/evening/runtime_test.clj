@@ -1,6 +1,7 @@
 (ns evening.runtime-test
   (:require [clojure.test :refer :all]
             [clojure.set :as set]
+            [clojure.spec.alpha :as spec]
             [evening.runtime :refer :all]))
 
 (deftest bindings-test
@@ -175,3 +176,64 @@
         (is (not (contains? inference {:square fact3}))))
       (testing "negative width doesn't count"
         (is (not (contains? inference {:square fact5})))))))
+
+(deftest basic-knowledge-base-test
+  (testing "one inference iteration, one new fact"
+    (let [fact {:man "socrates"}
+          premise {:man {:var :x}}
+          conclusion {{:mortal {:var :x}} identity}
+          rule (->Rule #{premise} conclusion)
+          kb (->KnowledgeBase #{fact} #{rule})
+          expected (->KnowledgeBase #{fact {:mortal "socrates"}} #{rule})
+          actual (infer-all kb)]
+      (is (= expected actual)))))
+
+(deftest side-effect-test
+  (testing "one inference iteration with a side effect"
+    (let [fact {:magic-number-is 3 :at-time 0}
+          premise {:magic-number-is {:var :x} :at-time {:var :t}}
+          test-atom (atom 0)
+          conclusion-matcher {:atom-is {:var :x} :at-time {:var :t}}
+          conclusion-side-effect #(reset! test-atom (:atom-is %))
+          conclusions {conclusion-matcher conclusion-side-effect}
+          rule (->Rule #{premise} conclusions)
+          kb (->KnowledgeBase #{fact} #{rule})
+          expected (->KnowledgeBase #{fact {:atom-is 3 :at-time 0}} #{rule})
+          actual (infer-all kb)]
+      (is (= expected actual) "inference expectation")
+      (is (= @test-atom 3) "atom value expectation (from side-effect)"))))
+
+(deftest multiple-iterations-test
+  (testing "three inference iterations, three new facts"
+    (let [fact {:foo 5}
+          premise1 {:foo {:var :x}}
+          premise2 {:bar {:var :y}}
+          premise3 {:baz {:var :z}}
+          conclusions1 {{:bar {:var :x}} identity}
+          conclusions2 {{:baz {:var :y}} identity}
+          conclusions3 {{:quux {:var :z}} identity}
+          rule1 (->Rule #{premise1} conclusions1)
+          rule2 (->Rule #{premise2} conclusions2)
+          rule3 (->Rule #{premise3} conclusions3)
+          kb (->KnowledgeBase #{fact} #{rule1 rule2 rule3})
+          expected (->KnowledgeBase #{fact {:bar 5} {:baz 5} {:quux 5}} #{rule1 rule2 rule3})
+          actual (infer-all kb)]
+      (is (= expected actual)))))
+
+(deftest multiple-new-facts-test
+  (testing "one inference iterations, three new facts"
+    (let [fact1 {:foo 5}
+          fact2 {:bar 3}
+          fact3 {:bar 2}
+          premise1 {:foo {:var :x}}
+          premise2 {:bar {:var :y}}
+          conclusions1 {{:foo-prime {:var :x}} identity}
+          conclusions2 {{:bar-prime {:var :y}} identity}
+          rule1 (->Rule #{premise1} conclusions1)
+          rule2 (->Rule #{premise2} conclusions2)
+          kb (->KnowledgeBase #{fact1 fact2 fact3} #{rule1 rule2})
+          expected (->KnowledgeBase 
+                      #{fact1 fact2 fact3 {:foo-prime 5} {:bar-prime 3} {:bar-prime 2}}
+                      #{rule1 rule2})
+          actual (infer-all kb)]
+      (is (= expected actual)))))
