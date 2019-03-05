@@ -297,3 +297,13 @@
 (spec/fdef add-rule
   :args (spec/cat :rule ::rule :kb ::knowledge-base)
   :ret ::knowledge-base)
+
+
+(defn pvar
+  "Shorthand for making a variable in a predicate."
+  [var-name]
+  {:var var-name})
+
+(spec/fdef pvar
+  :args (spec/cat :var-name keyword?)
+  :ret matcher-var?)
